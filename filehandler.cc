@@ -122,6 +122,7 @@ FileHandler::FileHandler() :
 	lastCollectionFreeSpace( 0 ), currentCollectionSize( 0 ), framesWritten( 0 ), filename( "" )
 {
 	prevTimeCode.sec = -1;
+	prevAudioInfo.frequency = -1;
 }
 
 
@@ -316,13 +317,41 @@ bool FileHandler::Done()
 
 bool FileHandler::WriteFrame( Frame *frame )
 {
+
+	/* Determine if a trigger is required due to a new audio information */
+	AudioInfo audio;
+	bool startNewFileAudioTrigger = false;
+
+	if (((DVFrame*) frame)->GetAudioInfo(audio)) {
+		bool printInfo = prevAudioInfo.frequency < 0;
+
+		// || prevAudioInfo.samples != audio.samples
+		if (prevAudioInfo.frequency > 0
+			&& (
+				prevAudioInfo.frequency != audio.frequency
+				|| prevAudioInfo.channels != audio.channels
+				|| prevAudioInfo.quantization != audio.quantization
+			)
+		) {
+			printInfo = true;
+			startNewFileAudioTrigger = true;
+		}
+		if (printInfo) {
+			printf(
+				"AUDIOInfo Frames: %d, Freq:%d, Samples:%d, Channels: %d, Quantization: %d\n",
+				audio.frames, audio.frequency, audio.samples, audio.channels, audio.quantization
+			);
+		}
+		((DVFrame*) frame)->GetAudioInfo(prevAudioInfo);
+	}
+
 	/* If the file size, collection size, or max frame count would be exceeded
 	 * by this frame, and we can start a new file on this frame, close the current file.
 	 * If the autosplit flag is set, a new file will be created.
 	 */
 	if ( FileIsOpen() && frame->CanStartNewStream() )
 	{
-		bool startNewFile = false;
+		bool startNewFile = startNewFileAudioTrigger;
 		off_t newFileSize = GetFileSize() + frame->GetDataLen();
 		bool maxFileSizeExceeded = newFileSize >= GetMaxFileSize();
 		bool maxColSizeExceeded = GetCurrentCollectionSize() + newFileSize >= GetMaxColSize();
@@ -751,6 +780,10 @@ int AVIHandler::Close()
 		delete avi;
 		avi = NULL;
 	}
+
+	// Force the re-read information from the frame when splitting the file
+	// to ensure the aspects of the video are updated.
+	infoSet = false;
 	return 0;
 }
 

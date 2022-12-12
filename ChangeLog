@@ -4,6 +4,9 @@ dvgrab ChangeLog
 
 SEE the NEWS file for RELEASE NOTES!
 
+----- Pierre Dumuid Extras ----
+	- Make auto-splits occur when the audio properties changes, (e.g. 12 bit => 16 bit)
+
 ----- v3.5 released -----
 
 2009-09-07  Dan Dennedy <dan@dennegy.org>

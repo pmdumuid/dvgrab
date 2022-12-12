@@ -166,6 +166,7 @@ protected:
 	bool filmRate;
 	bool remove2332;
 	time_t prevTime;
+	AudioInfo prevAudioInfo;
 };
 
 
